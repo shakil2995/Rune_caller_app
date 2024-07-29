@@ -1,19 +1,23 @@
-let port = process.env.PORT || 5000;
-let IO = require("socket.io")(port, {
+const express = require("express");
+const http = require("http");
+const socketIO = require("socket.io");
+
+const app = express();
+const port = process.env.PORT || 5000;
+
+const server = http.createServer(app);
+const io = socketIO(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"],
   },
 });
 
-console.log(`Server is running at http://localhost:${port}`);
-
-get("/", function (req, res) {
-	res.status(200);
-	res.send("<h1>Hello world</h1>");
+app.get("/", function (req, res) {
+  res.status(200).send("<h1>Hello world</h1>");
 });
 
-IO.use((socket, next) => {
+io.use((socket, next) => {
   if (socket.handshake.query) {
     let callerId = socket.handshake.query.callerId;
     socket.user = callerId;
@@ -21,7 +25,7 @@ IO.use((socket, next) => {
   }
 });
 
-IO.on("connection", (socket) => {
+io.on("connection", (socket) => {
   console.log(socket.user, "Connected");
   socket.join(socket.user);
 
@@ -54,4 +58,8 @@ IO.on("connection", (socket) => {
       iceCandidate: iceCandidate,
     });
   });
+});
+
+server.listen(port, () => {
+  console.log(`Server is running at http://localhost:${port}`);
 });
