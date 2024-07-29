@@ -40,7 +40,8 @@ class InitializationScreenState extends State<InitializationScreen> {
     _initializeCallerID();
   }
 
-  Future<void> _initializeCallerID() async {
+Future<void> _initializeCallerID() async {
+  try {
     final prefs = await SharedPreferences.getInstance();
     String? storedCallerID = prefs.getString(callerIDKey);
 
@@ -56,7 +57,12 @@ class InitializationScreenState extends State<InitializationScreen> {
       });
       _initializeSignallingService(storedCallerID);
     }
+  } catch (e) {
+    // Handle the error appropriately
+    print('Error initializing caller ID: $e');
   }
+}
+
 
   void _initializeSignallingService(String callerID) {
     SignallingService.instance.init(
@@ -100,11 +106,25 @@ class PhoneNumberScreenState extends State<PhoneNumberScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const Text(
+              'Please enter your phone number to continue:',
+              style: TextStyle(fontSize: 18),
+            ),
+            const SizedBox(height: 16),
             TextField(
               controller: controller,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(hintText: "Phone Number"),
+              decoration: InputDecoration(
+                hintText: "Phone Number",
+                border: const OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                    vertical: 15.0, horizontal: 10.0),
+              ),
               onChanged: (value) {
                 setState(() {
                   isValid = value.length >= 11;
@@ -112,20 +132,35 @@ class PhoneNumberScreenState extends State<PhoneNumberScreen> {
               },
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: isValid
-                  ? () async {
-                      final phoneNumber = controller.text;
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.setString(callerIDKey, phoneNumber);
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (context) => const InitializationScreen(),
-                        ),
-                      );
-                    }
-                  : null,
-              child: const Text('Done'),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+  onPressed: isValid
+      ? () async {
+          try {
+            final phoneNumber = controller.text;
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString(callerIDKey, phoneNumber);
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => const InitializationScreen(),
+              ),
+            );
+          } catch (e) {
+            // Handle the error appropriately
+            print('Error saving phone number: $e');
+          }
+        }
+      : null,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  textStyle: const TextStyle(fontSize: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text('Continue'),
+              ),
             ),
           ],
         ),
