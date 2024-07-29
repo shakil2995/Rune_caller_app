@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'call_screen.dart';
 import '../services/signalling.service.dart';
 
@@ -12,12 +13,14 @@ class JoinScreen extends StatefulWidget {
 }
 
 class _JoinScreenState extends State<JoinScreen> {
+  static const String remoteCallerIDKey = 'remoteCallerID';
   dynamic incomingSDPOffer;
   final remoteCallerIdTextEditingController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _loadLastUsedRemoteCallerID();
 
     // listen for incoming video call
     SignallingService.instance.socket!.on("newCall", (data) {
@@ -28,12 +31,27 @@ class _JoinScreenState extends State<JoinScreen> {
     });
   }
 
+  Future<void> _loadLastUsedRemoteCallerID() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? lastUsedRemoteCallerID = prefs.getString(remoteCallerIDKey);
+
+    if (lastUsedRemoteCallerID != null) {
+      remoteCallerIdTextEditingController.text = lastUsedRemoteCallerID;
+    }
+  }
+
+  Future<void> _saveLastUsedRemoteCallerID(String callerID) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(remoteCallerIDKey, callerID);
+  }
+
   // join Call
   _joinCall({
     required String callerId,
     required String calleeId,
     dynamic offer,
   }) {
+    _saveLastUsedRemoteCallerID(calleeId);  // Save the remote caller ID before joining the call
     Navigator.push(
       context,
       MaterialPageRoute(
